@@ -1,0 +1,80 @@
+---
+- name: Build and Push Docker Image
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    region: "{{ lookup('env', 'AWS_REGION') | default('eu-central-1') }}"
+    ecr_repo_url: "{{ ecr_repository_url }}"
+  
+  tasks:
+    - name: Get ECR Login Password
+      shell: "aws ecr get-login-password --region {{ region }}"
+      register: ecr_password
+      changed_when: false
+
+    - name: Login to ECR
+      shell: "docker login --username AWS --password-stdin {{ ecr_repo_url }}"
+      args:
+        stdin: "{{ ecr_password.stdout }}"
+      changed_when: false
+
+    - name: Build Docker Image
+      community.docker.docker_image:
+        build:
+          path: ../app
+        name: "{{ ecr_repo_url }}"
+        tag: latest
+        source: build
+
+    - name: Push Docker Image to ECR
+      community.docker.docker_image:
+        name: "{{ ecr_repo_url }}"
+        tag: latest
+        push: yes
+        source: local
+
+- name: Deploy to EKS
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ecr_repo_url: "{{ ecr_repository_url }}"
+    cluster_name: "{{ cluster_name }}"
+    region: "{{ lookup('env', 'AWS_REGION') | default('eu-central-1') }}"
+
+  tasks:
+    - name: Update Kubeconfig
+      shell: "aws eks update-kubeconfig --region {{ region }} --name {{ cluster_name }}"
+      changed_when: false
+
+    - name: Generate Deployment Manifest
+      template:
+        src: templates/deployment.yaml.j2
+        dest: /tmp/deployment.yaml
+
+    - name: Generate Service Manifest
+      template:
+        src: templates/service.yaml.j2
+        dest: /tmp/service.yaml
+
+    - name: Apply Deployment
+      kubernetes.core.k8s:
+        state: present
+        src: /tmp/deployment.yaml
+
+    - name: Apply Service
+      kubernetes.core.k8s:
+        state: present
+        src: /tmp/service.yaml
+
+    - name: Get Service URL
+      shell: kubectl get svc migration-app-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+      register: service_url
+      until: service_url.stdout != ""
+      retries: 10
+      delay: 10
+
+    - name: Display Service URL
+      debug:
+        msg: "Application is running at: http://{{ service_url.stdout }}"

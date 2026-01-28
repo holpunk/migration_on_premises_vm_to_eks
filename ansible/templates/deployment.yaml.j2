@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: migration-app
+  labels:
+    app: migration-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: migration-app
+  template:
+    metadata:
+      labels:
+        app: migration-app
+    spec:
+      containers:
+      - name: migration-app
+        image: {{ ecr_repository_url }}:latest
+        ports:
+        - containerPort: 5000
+        imagePullPolicy: Always

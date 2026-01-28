@@ -6,8 +6,13 @@
   vars:
     region: "{{ lookup('env', 'AWS_REGION') | default('eu-central-1') }}"
     ecr_repo_url: "{{ ecr_repository_url }}"
+    commit_hash: "{{ commit_hash }}"
   
   tasks:
+    - name: Track Deployment Start
+      command: "python3 ../dora/track.py track --event deployment --status started --commit {{ commit_hash }}"
+      changed_when: false
+
     - name: Get ECR Login Password
       shell: "aws ecr get-login-password --region {{ region }}"
       register: ecr_password
@@ -78,3 +83,13 @@
     - name: Display Service URL
       debug:
         msg: "Application is running at: http://{{ service_url.stdout }}"
+
+    - name: Track Deployment Success
+      command: "python3 ../dora/track.py track --event deployment --status success --commit {{ commit_hash }}"
+      changed_when: false
+
+  post_tasks:
+    - name: Track Deployment Failure
+      command: "python3 ../dora/track.py track --event deployment --status failure --commit {{ commit_hash }}"
+      when: ansible_failed_task is defined
+      changed_when: false

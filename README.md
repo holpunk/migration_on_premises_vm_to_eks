@@ -10,6 +10,11 @@ The pipeline automates the entire migration journey:
 3.  **Deployment**: Pushes the image to ECR and deploys it to EKS using **Ansible**.
 4.  **Verification**: Exposes the application via a LoadBalancer and verifies accessibility.
 
+## 📝 Assumptions
+
+-   **Deployment Location**: The EKS cluster is intended to be deployed within a **Workload OU** (Organizational Unit).
+-   **Compliance**: The infrastructure is assumed to be created and managed in accordance with organizational compliance standards.
+
 ## 🛠 Tech Stack
 
 -   **Terraform**: Infrastructure as Code (IaC) for AWS resources (VPC, EKS, ECR).

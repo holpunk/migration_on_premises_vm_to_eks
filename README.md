@@ -12,8 +12,7 @@ The pipeline automates the entire migration journey:
 
 ## 📝 Assumptions
 
--   **Deployment Location**: The EKS cluster is intended to be deployed within a **Workload OU** (Organizational Unit).
--   **Compliance**: The infrastructure is assumed to be created and managed in accordance with organizational compliance standards.
+-   **Deployment Environment**: The EKS cluster is deployed within a **Workload OU** (Organizational Unit) and is created and managed in accordance with organizational compliance standards.
 
 ## 🛠 Tech Stack
 
